@@ -73,6 +73,23 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
   const pulseRingScale = interpolate(pulseRingWave, [-1, 1], [0.92, 1.12]);
   const pulseRingOpacity = interpolate(pulseRingWave, [-1, 1], [0.4, 0.7]);
 
+  // ---------- Creative enhancements ----------
+  // Rotating ring around logo
+  const ringRotate = (time * 360 / 8) % 360; // 8 seconds per rotation
+  const ringScale = 1 + Math.sin(time * Math.PI * 2) * 0.03; // gentle pulse
+
+  // Particles around button
+  const particleCount = 12;
+  const particles = Array.from({ length: particleCount }).map((_, i) => {
+    const angle = (i / particleCount) * Math.PI * 2 + time * 2;
+    const radius = 180 + Math.sin(time * 3 + i) * 20;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    const opacity = 0.6 + Math.sin(time * 5 + i) * 0.3;
+    const size = 6 + Math.sin(time * 4 + i) * 2;
+    return { x, y, opacity, size };
+  });
+
   // ---------- Logo entrance (scalePopLogo) ----------
   const logoEntrance = interpolate(frame, [0, 0.9 * fps], [0, 1], {
     ...clamp,
@@ -87,7 +104,7 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
   const logoFloatY = Math.sin((time / 3) * Math.PI * 2) * 4;
   const logoFloatRotate = Math.sin((time / 3) * Math.PI * 2) * 1;
 
-  // ---------- Title entrance (riseGlow) ----------
+  // ---------- Title entrance (riseGlow) with staggered letters ----------
   const titleEntrance = interpolate(frame, [0, 0.9 * fps], [0, 1], {
     ...clamp,
     easing: Easing.bezier(0.2, 0.9, 0.3, 1.2),
@@ -97,7 +114,20 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
   const titleScale = interpolate(titleEntrance, [0, 0.4, 1], [0.92, 1.01, 1], clamp);
   const titleBlur = interpolate(titleEntrance, [0, 0.4, 1], [8, 0, 0], clamp);
 
-  // ---------- Subtitle entrance (slideUpFade) ----------
+  // Staggered letter animation for "Demandez votre démo gratuite"
+  const letters = "Demandez votre démo gratuite".split("");
+  const letterStagger = (index: number, total: number) => {
+    const startDelay = 0.2 + index * 0.02;
+    const progress = interpolate(frame, [startDelay * fps, (startDelay + 0.3) * fps], [0, 1], {
+      ...clamp,
+      easing: Easing.out(Easing.cubic),
+    });
+    const translateY = interpolate(progress, [0, 1], [30, 0]);
+    const opacity = progress;
+    return { translateY, opacity };
+  };
+
+  // ---------- Subtitle entrance (slideUpFade) with wave ----------
   const subtitleEntrance = interpolate(frame, [0, 0.85 * fps], [0, 1], {
     ...clamp,
     easing: Easing.bezier(0.2, 0.9, 0.4, 1.1),
@@ -106,8 +136,10 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
   const subtitleTranslateY = interpolate(subtitleEntrance, [0, 1], [70, 0], clamp);
   const subtitleScale = interpolate(subtitleEntrance, [0, 1], [0.95, 1], clamp);
   const subtitleBlur = interpolate(subtitleEntrance, [0, 1], [6, 0], clamp);
+  // Wave effect after entrance (continuous)
+  const subtitleWave = Math.sin(time * 4) * 2; // slight vertical bounce
 
-  // ---------- CTA button entrance (scalePopButton) ----------
+  // ---------- CTA button entrance (scalePopButton) with glow pulse ----------
   const buttonEntrance = interpolate(frame, [0, 0.9 * fps], [0, 1], {
     ...clamp,
     easing: Easing.bezier(0.2, 0.9, 0.4, 1.1),
@@ -116,6 +148,9 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
   const buttonScale = interpolate(buttonEntrance, [0, 0.5, 1], [0.85, 1.02, 1], clamp);
   const buttonTranslateY = interpolate(buttonEntrance, [0, 0.5, 1], [40, -4, 0], clamp);
   const buttonBlur = interpolate(buttonEntrance, [0, 0.5, 1], [8, 0, 0], clamp);
+  // Glow pulse (continuous after entrance)
+  const buttonGlow = pulseValue(time - 0.9, 2);
+  const buttonShadow = interpolate(buttonGlow, [-1, 1], [0, 30]);
 
   return (
     <div
@@ -293,27 +328,43 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
           padding: "60px 0",
         }}
       >
-        {/* Logo */}
-        <div
-          style={{
-            filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.3))",
-            opacity: logoOpacity,
-            transform: `translateY(${logoFloatY}px) rotate(${logoFloatRotate}deg) scale(${logoScale}) rotate(${logoRotate}deg)`,
-            filter: `blur(${logoBlur}px) drop-shadow(0 20px 40px rgba(0,0,0,0.3))`,
-          }}
-        >
-          <img
-            src={staticFile("logo.png")}
+        {/* Logo with rotating ring */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+          <div
             style={{
-              height: 200,
-              objectFit: "contain",
-              filter: "brightness(0) invert(1)",
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: 280,
+              height: 280,
+              borderRadius: "50%",
+              border: "2px solid rgba(255,255,255,0.3)",
+              transform: `translate(-50%, -50%) rotate(${ringRotate}deg) scale(${ringScale})`,
+              boxShadow: "0 0 20px rgba(255,255,255,0.2)",
+              pointerEvents: "none",
             }}
-            alt="ShipTrack"
           />
+          <div
+            style={{
+              filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.3))",
+              opacity: logoOpacity,
+              transform: `translateY(${logoFloatY}px) rotate(${logoFloatRotate}deg) scale(${logoScale}) rotate(${logoRotate}deg)`,
+              filter: `blur(${logoBlur}px) drop-shadow(0 20px 40px rgba(0,0,0,0.3))`,
+            }}
+          >
+            <img
+              src={staticFile("logo.png")}
+              style={{
+                height: 200,
+                objectFit: "contain",
+                filter: "brightness(0) invert(1)",
+              }}
+              alt="ShipTrack"
+            />
+          </div>
         </div>
 
-        {/* Title */}
+        {/* Title with staggered letters */}
         <div
           style={{
             fontSize: 120,
@@ -330,11 +381,28 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
             filter: `blur(${titleBlur}px)`,
           }}
         >
-          Demandez votre <span style={{ opacity: 0.75, fontWeight: 700 }}>démo gratuite</span>
-          <br />dès maintenant.
+          <div>
+            {letters.map((char, i) => {
+              const { translateY, opacity: charOpacity } = letterStagger(i, letters.length);
+              return (
+                <span
+                  key={i}
+                  style={{
+                    display: "inline-block",
+                    transform: `translateY(${translateY}px)`,
+                    opacity: charOpacity,
+                  }}
+                >
+                  {char === " " ? "\u00A0" : char}
+                </span>
+              );
+            })}
+          </div>
+          <br />
+          <span style={{ opacity: 0.75, fontWeight: 700 }}>dès maintenant.</span>
         </div>
 
-        {/* Subtitle */}
+        {/* Subtitle with wave */}
         <div
           style={{
             fontSize: 64,
@@ -347,7 +415,7 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
             borderRadius: 80,
             display: "inline-block",
             opacity: subtitleOpacity,
-            transform: `translateY(${subtitleTranslateY}px) scale(${subtitleScale})`,
+            transform: `translateY(${subtitleTranslateY + subtitleWave}px) scale(${subtitleScale})`,
             filter: `blur(${subtitleBlur}px)`,
             boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
           }}
@@ -355,26 +423,47 @@ export const Scene28 = ({ inFrame, outFrame, crossfadeFrames }: P) => {
           Contrôlez vos opérations. Maîtrisez vos marges et bien plus.
         </div>
 
-        {/* CTA Button */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: 30,
-            padding: "40px 120px",
-            fontSize: 60,
-            fontWeight: 800,
-            color: "#1E3A8A",
-            cursor: "pointer",
-            boxShadow: "0 20px 80px rgba(0,0,0,0.2)",
-            letterSpacing: 2,
-            backdropFilter: "blur(4px)",
-            opacity: buttonOpacity,
-            transform: `translateY(${buttonTranslateY}px) scale(${buttonScale})`,
-            filter: `blur(${buttonBlur}px)`,
-            transition: "transform 0.2s, box-shadow 0.2s",
-          }}
-        >
-          Commencer maintenant →
+        {/* CTA Button with particles */}
+        <div style={{ position: "relative" }}>
+          {/* Particles around button */}
+          {particles.map((part, idx) => (
+            <div
+              key={idx}
+              style={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: part.size,
+                height: part.size,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.6)",
+                transform: `translate(calc(-50% + ${part.x}px), calc(-50% + ${part.y}px))`,
+                opacity: part.opacity,
+                pointerEvents: "none",
+                filter: "blur(1px)",
+              }}
+            />
+          ))}
+          <div
+            style={{
+              background: "white",
+              borderRadius: 30,
+              padding: "40px 120px",
+              fontSize: 60,
+              fontWeight: 800,
+              color: "#1E3A8A",
+              cursor: "pointer",
+              boxShadow: `0 20px 80px rgba(0,0,0,0.2), 0 0 ${buttonShadow}px rgba(255,255,255,0.6)`,
+              letterSpacing: 2,
+              backdropFilter: "blur(4px)",
+              opacity: buttonOpacity,
+              transform: `translateY(${buttonTranslateY}px) scale(${buttonScale})`,
+              filter: `blur(${buttonBlur}px)`,
+              transition: "transform 0.2s, box-shadow 0.2s",
+            }}
+          >
+            Commencer maintenant →
+          </div>
         </div>
       </div>
     </div>
