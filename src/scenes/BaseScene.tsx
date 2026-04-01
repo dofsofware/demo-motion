@@ -45,7 +45,7 @@ export const BaseScene = ({
   const tIn = Math.max(0, Math.min(1, local / crossfadeFrames));
   // Fade out (par rapport à la fin réelle de la scène)
   const tOut = Math.max(0, Math.min(1, (duration - local) / crossfadeFrames));
-  const opacity = 1; // Math.min(tIn, tOut);
+  const opacity = Math.min(tIn, tOut);
 
   const scaleToFit = Math.min(width / htmlWidth, height / htmlHeight);
 
